@@ -11,7 +11,7 @@ struct Tensor {
     Tensor(unsigned int const shape_[N]) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
-	for (int i;i<N;i++) {
+	for (unsigned int i=0;i<N;i++) {
 	    shape[i] = shape_[i];
 	    size *= shape_[i];	
 	} 
@@ -40,7 +40,7 @@ private:
             ASSERT(indices[i] < shape[i], "Invalid index");
             // TODO: 计算 index
 	    unsigned int offset = indices[i];
-	    for (int j=i+1; j<N;++j){
+	    for (unsigned int j=i+1; j<N;++j){
 	    	offset *= shape[j];
 	    }
 	    index += offset;

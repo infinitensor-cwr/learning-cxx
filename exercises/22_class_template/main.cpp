@@ -1,5 +1,5 @@
 ﻿#include "../exercise.h"
-
+#include <cstring>
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
 template<class T>
@@ -10,6 +10,10 @@ struct Tensor4D {
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+	for(int i=0; i<sizeof(shape)/sizeof(shape[0]);i++) {
+	    shape[i] = shape_[i];
+	    size *= shape_[i];
+	}
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +32,41 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+	bool resize = false;
+	unsigned int new_shape[4];
+	T* new_data;
+	size_t new_size = 1;
+	for(int i=0;i<sizeof(shape)/sizeof(shape[0]);i++){
+	    if (shape[i] < others.shape[i]) {
+	        new_shape[i] = others.shape[i];
+		resize = true;
+	    } else {
+	        new_shape[i] = shape[i];
+	    }
+	    new_size *= new_shape[i];
+	}
+	
+	new_data = new(T[new_size]);
+	unsigned int fi[4], ti[4], oi[4];
+	for(int i=0;i<new_size;i++){
+	    fi[0] = i / (shape[1] * shape[2] * shape[3]);
+	    fi[1] = (i - fi[0] * shape[1] * shape[2] * shape[3]) / (shape[2] * shape[3]);
+	    fi[2] = (i - fi[0] * shape[1] * shape[2] * shape[3] - fi[1] * shape[2] * shape[3]) / shape[3];
+	    fi[3] = (i - fi[0] * shape[1] * shape[2] * shape[3] - fi[1] * shape[2] * shape[3] - fi[2] * shape[3]);
+	    for(int j=0; j<sizeof(shape)/sizeof(*shape);j++){
+	        ti[j] = (fi[j]<=shape[j]-1)? fi[j]:0;
+	        oi[j] = (fi[j]<=others.shape[j]-1)? fi[j]:0;
+	    }
+	    printf("new_data_index:%d\n",i);
+	    new_data[i] = data[ti[0]*shape[1]*shape[2]*shape[3]+ti[1]*shape[2]*shape[3]+ti[2]*shape[3]+ti[3]] + others.data[oi[0]*others.shape[1]*others.shape[2]*others.shape[3]+oi[1]*others.shape[2]*others.shape[3]+oi[2]*others.shape[3]+oi[3]];
+	    //printf("%d\n", ti[0]*shape[1]*shape[2]*shape[3]+ti[1]*shape[2]*shape[3]+ti[2]*shape[3]+ti[3]);
+	    printf("others_index:%d\n", oi[0]*others.shape[1]*others.shape[2]*others.shape[3]+oi[1]*others.shape[2]*others.shape[3]+oi[2]*others.shape[3]+oi[3]);
+	}
+	delete[] data;
+	for(int i=0;i<sizeof(shape)/sizeof(*shape);i++){
+	    shape[i] == new_shape[i];
+	}
+	data = new_data;
         return *this;
     }
 };
@@ -76,9 +115,8 @@ int main(int argc, char **argv) {
             2,
             1};
         // clang-format on
-
-        auto t0 = Tensor4D(s0, d0);
-        auto t1 = Tensor4D(s1, d1);
+        auto t0 = Tensor4D<float>(s0, d0);
+        auto t1 = Tensor4D<float>(s1, d1);
         t0 += t1;
         for (auto i = 0u; i < sizeof(d0) / sizeof(*d0); ++i) {
             ASSERT(t0.data[i] == 7.f, "Every element of t0 should be 7 after adding t1 to it.");
@@ -98,7 +136,6 @@ int main(int argc, char **argv) {
         // clang-format on
         unsigned int s1[]{1, 1, 1, 1};
         double d1[]{1};
-
         auto t0 = Tensor4D(s0, d0);
         auto t1 = Tensor4D(s1, d1);
         t0 += t1;
